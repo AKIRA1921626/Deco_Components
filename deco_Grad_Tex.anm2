@@ -28,7 +28,18 @@
 --check@grd_reverse:グラデ付与対象を逆転(個別オブジェクト時),0
 --check@grd_integrate:グラデーションテキスト1枚化(個別オブジェクト時),0
 
-local join = require("Individual_object_join") -- テキスト一枚化用のモジュール
+-- pcallを使用して読み込みを試行する
+-- status: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local status, join_mod = pcall(require, "Individual_object_join")
+
+local join = nil
+if status then
+    join = join_mod
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    join = nil
+end
 
 -- グラデーション
     local GRD_TYPES = {
@@ -127,10 +138,18 @@ end
     local w, h = 0, 0
     local permanent_aw, permanent_ah = obj.getpixel()
     h = (h+permanent_ah) * obj.sx * obj.sy * obj.sz
-    if is_multi and grd_integrate ~= 0 then
-        for i=0, obj.num do
-            local aw = obj.getpixel()
-            w = (w+aw) * obj.sx * obj.sy * obj.sz
+    if grd_integrate ~= 0 then
+        if is_multi then
+            for i=0, obj.num do
+                local aw = obj.getpixel()
+                w = (w+aw) * obj.sx * obj.sy * obj.sz
+            end
+            if join then
+                join.object_join(w, h)
+            elseif obj.index == 0 then
+                debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
+            end
+        else
+            debug_print("個別オブジェクトが有効になっていません。そのためテキスト一枚化の実行を停止します。")
         end
-        join.object_join(w, h)
 end
