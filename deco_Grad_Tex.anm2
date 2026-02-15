@@ -26,7 +26,7 @@
 --group
 --check@alter_size:グラデーションの数値をテキストサイズと連動,1
 --check@grd_reverse:グラデ付与対象を逆転(個別オブジェクト時),0
---check@grd_integrate:グラデーションテキスト1枚化(個別オブジェクト時),0
+--check@grd_integrate:テキスト1枚化(個別オブジェクト時),0
 
 -- pcallを使用して読み込みを試行する
 -- status: 読み込み成功ならtrue, 失敗ならfalse
@@ -50,9 +50,6 @@ end
         {"通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分"},
         {"通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分"}
     }
-    
-    local is_multi = obj.getoption("multi_object")
-    local idx = obj.index + 1
 
     -- 改行の有無を確認する
     local text = obj.getvalue("テキスト","テキスト")
@@ -101,6 +98,9 @@ local grd_width     = { grd_width1,     grd_width2     }
         grd_start_col[1], grd_start_col[2] = grd_start_col[2], grd_start_col[1]
         grd_end_col[1],   grd_end_col[2]   = grd_end_col[2],   grd_end_col[1]
     end
+
+    local is_multi = obj.getoption("multi_object")
+    local idx = obj.index + 1
 
 for i = 1, 2 do
     -- 基本条件の判定
