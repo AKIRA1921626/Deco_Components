@@ -17,7 +17,7 @@ https://github.com/AKIRA1921626/text-decoration-set
 
 ### Individual_object_join.lua
 これは「deco_Color_Tex.anm2」「deco_Grad_Tex.anm2」に存在する「テキスト1枚化」の機能を有効にするための物です。  
-「テキスト1枚化」の機能を使いたい場合、このファイルを「Deco_Components.anm2」「」と同じフォルダに入れてください。  
+「テキスト1枚化」の機能を使いたい場合、このファイルをそれらのスクリプトと同じフォルダに入れてください。  
 
 #### 二次配布可、改変可、クレジット不要
 
