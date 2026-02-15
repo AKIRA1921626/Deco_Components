@@ -1,0 +1,70 @@
+--color@char_col1:文字色1,c83232
+--track@char_start1:文字色1開始文字(個別オブジェクト時),0,500,0,1
+--track@char_end1:文字色1終了文字(個別オブジェクト時),0,500,2,1
+--check@char_reset1:文字色1リセット,0
+--color@char_col2:文字色2,00c800
+--track@char_start2:文字色2開始文字(個別オブジェクト時),0,500,3,1
+--track@char_end2:文字色2終了文字(個別オブジェクト時),0,500,4,1
+--check@char_reset2:文字色2リセット,0
+--color@char_col3:文字色3,0000c8
+--track@char_start3:文字色3開始文字(個別オブジェクト時),0,500,5,1
+--track@char_end3:文字色3終了文字(個別オブジェクト時),0,500,6,1
+--check@char_reset3:文字色3リセット,1
+--check@grd_integrate:テキスト1枚化(個別オブジェクト時),0
+
+-- pcallを使用して読み込みを試行する
+-- status: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local status, join_mod = pcall(require, "Individual_object_join")
+
+local join = nil
+if status then
+    join = join_mod
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    join = nil
+end
+
+local is_multi = obj.getoption("multi_object")
+local idx = obj.index + 1
+
+if char_reset1 ~= 0 then char_col1 = nil end
+if char_reset2 ~= 0 then char_col2 = nil end
+if char_reset3 ~= 0 then char_col3 = nil end
+
+-- 3. 色変更（単色化）
+if char_col1 ~= nil then
+    if not is_multi or (idx >= char_start1 and idx <= char_end1) then
+        obj.effect("単色化", "強さ", 100, "色", char_col1, "輝度を保持する", 0)
+    end
+end
+
+-- 以降のcol2, col3, reset処理
+if is_multi then
+    if char_col2 ~= nil and idx >= char_start2 and idx <= char_end2 then
+        obj.effect("単色化", "強さ", 100, "色", char_col2, "輝度を保持する", 0)
+    end
+    if char_col3 ~= nil and idx >= char_start3 and idx <= char_end3 then
+        obj.effect("単色化", "強さ", 100, "色", char_col3, "輝度を保持する", 0)
+    end
+end
+
+    -- テキスト一枚化処理 (個別文字用)
+    local w, h = 0, 0
+    local permanent_aw, permanent_ah = obj.getpixel()
+    h = (h+permanent_ah) * obj.sx * obj.sy * obj.sz
+    if grd_integrate ~= 0 then
+        if is_multi then
+            for i=0, obj.num do
+                local aw = obj.getpixel()
+                w = (w+aw) * obj.sx * obj.sy * obj.sz
+            end
+            if join then
+                join.object_join(w, h)
+            elseif obj.index == 0 then
+                debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
+            end
+        else
+            debug_print("個別オブジェクトが有効になっていません。そのためテキスト一枚化の実行を停止します。")
+        end
+end
