@@ -1,0 +1,136 @@
+--check@grd_enable1:グラデーション1,1
+--color@grd_start_col1:グラデ1開始色,0xff0000
+--color@grd_end_col1:グラデ1終了色,0xffff00
+--track@grd_start1:グラデ1開始文字,0,500,0,1
+--track@grd_end1:グラデ1終了文字,0,500,2,1
+--select@grd_type1:グラデーション1タイプ=1,線形=1,円形=2,矩形=3,凸形=4
+--track@grd_pow1:グラデ1強さ,0,100,100,0.1
+--track@grd_x1:グラデ1中心X,-5000,5000,0,0.1
+--track@grd_y1:グラデ1中心Y,-5000,5000,0,0.1
+--track@grd_rotate1:グラデ1角度,-3600,3600,0,0.01
+--track@grd_width1:グラデ1幅,0,2000,100,1
+--select@grd_composite1:グラデ1合成モード=1,通常=1,加算=2,減算=3,乗算=4,スクリーン=5,オーバーレイ=6,比較(明)=7,比較(暗)=8,輝度=9,色差=10,陰影=11,明暗=12,差分=13
+--group:グラデ2,true
+--check@grd_enable2:グラデーション2,0
+--color@grd_start_col2:グラデ2開始色,0x00ff00
+--color@grd_end_col2:グラデ2終了色,0x00ffff
+--track@grd_start2:グラデ2開始文字,0,500,3,1
+--track@grd_end2:グラデ2終了文字,0,500,5,1
+--select@grd_type2:グラデーション2タイプ=1,線形=1,円形=2,矩形=3,凸形=4
+--track@grd_pow2:グラデ2強さ,0,100,100,0.1
+--track@grd_x2:グラデ2中心X,-5000,5000,0,0.1
+--track@grd_y2:グラデ2中心Y,-5000,5000,0,0.1
+--track@grd_rotate2:グラデ2角度,-3600,3600,0,0.01
+--track@grd_width2:グラデ2幅,0,2000,100,1
+--select@grd_composite2:グラデ2合成モード=1,通常=1,加算=2,減算=3,乗算=4,スクリーン=5,オーバーレイ=6,比較(明)=7,比較(暗)=8,輝度=9,色差=10,陰影=11,明暗=12,差分=13
+--group
+--check@alter_size:グラデーションの数値をテキストサイズと連動,1
+--check@grd_reverse:グラデ付与対象を逆転(個別オブジェクト時),0
+--check@grd_integrate:グラデーションテキスト1枚化(個別オブジェクト時),0
+
+local join = require("Individual_object_join") -- テキスト一枚化用のモジュール
+
+-- グラデーション
+    local GRD_TYPES = {
+        {"線形", "円形", "矩形", "凸形"},
+        {"線形", "円形", "矩形", "凸形"}
+    }
+    local GRD_COMPOSITES = { 
+        {"通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分"},
+        {"通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分"}
+    }
+    
+    local is_multi = obj.getoption("multi_object")
+    local idx = obj.index + 1
+
+    -- 改行の有無を確認する
+    local text = obj.getvalue("テキスト","テキスト")
+    local count = 1
+    local i = 0
+    while true do
+        -- 改行の位置を検索
+        i = string.find(text, "\\n", i + 1)
+        if not i then break end
+    
+        -- 直前の文字を確認（インデックス i-1）
+        local prev_char = string.sub(text, i - 1, i - 1)
+    
+        if prev_char ~= "\\" then
+            count = count + 1
+        end
+    end
+
+    local w, h = obj.getpixel()
+    local resize
+    if(alter_size ~= 0) then
+        resize = (h/100) / math.max(1,count)
+    else
+        resize = 1
+    end
+
+
+-- 各設定値を i で管理するためのテーブル
+local grd_enable    = { grd_enable1,    grd_enable2    }
+local grd_start     = { grd_start1,     grd_start2     }
+local grd_end       = { grd_end1,       grd_end2       }
+local grd_start_col = { grd_start_col1, grd_start_col2 }
+local grd_end_col   = { grd_end_col1,   grd_end_col2   }
+local grd_type_idx  = { grd_type1,      grd_type2      } -- 数値が入る想定
+local grd_comp_idx  = { grd_composite1, grd_composite2 } -- 数値が入る想定
+
+-- trackバー等の数値パラメータ
+local grd_pow       = { grd_pow1,       grd_pow2       }
+local grd_x         = { grd_x1,         grd_x2         }
+local grd_y         = { grd_y1,         grd_y2         }
+local grd_rotate    = { grd_rotate1,    grd_rotate2    }
+local grd_width     = { grd_width1,     grd_width2     }
+
+    if grd_reverse ~= 0 then -- グラデ付与対象を逆転(個別オブジェクト時)の処理
+        -- 多重代入により、一時退避変数を使わずに同時に値を入れ替えます
+        grd_start_col[1], grd_start_col[2] = grd_start_col[2], grd_start_col[1]
+        grd_end_col[1],   grd_end_col[2]   = grd_end_col[2],   grd_end_col[1]
+    end
+
+for i = 1, 2 do
+    -- 基本条件の判定
+    local g_en = grd_enable[i] ~= 0
+    local in_r = (idx >= grd_start[i] and idx <= grd_end[i])
+
+    if g_en and (not is_multi or in_r) then
+        -- タイプと合成モードの解決
+        -- GRD_TYPES[i] 等が定義済みである前提
+        local g_type = (GRD_TYPES[i] and GRD_TYPES[i][grd_type_idx[i]]) or "線形"
+        local g_comp = (GRD_COMPOSITES[i] and GRD_COMPOSITES[i][grd_comp_idx[i]]) or "通常"
+        
+        -- nilチェック（色の有無判定）
+        local noC1 = (grd_start_col[i] == nil) and 1 or 0
+        local noC2 = (grd_end_col[i] == nil) and 1 or 0
+
+        -- effect関数の実行
+        obj.effect("グラデーション",
+            "強さ",      grd_pow[i],
+            "中心X",     grd_x[i] * resize,
+            "中心Y",     grd_y[i] * resize,
+            "角度",      grd_rotate[i],
+            "幅",        grd_width[i] * resize,
+            "合成モード", g_comp,
+            "形状",      g_type,
+            "開始色",    grd_start_col[i],
+            "no_color",  noC1,
+            "終了色",    grd_end_col[i],
+            "no_color2", noC2
+        )
+    end
+end
+
+    -- テキスト一枚化処理 (グラデーション用)
+    local w, h = 0, 0
+    local permanent_aw, permanent_ah = obj.getpixel()
+    h = (h+permanent_ah) * obj.sx * obj.sy * obj.sz
+    if is_multi and grd_integrate ~= 0 then
+        for i=0, obj.num do
+            local aw = obj.getpixel()
+            w = (w+aw) * obj.sx * obj.sy * obj.sz
+        end
+        join.object_join(w, h)
+end
