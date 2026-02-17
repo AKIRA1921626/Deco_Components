@@ -26,12 +26,13 @@
 --group
 --check@alter_size:グラデーションの数値をテキストサイズと連動,1
 --check@grd_reverse:グラデ付与対象を逆転(個別オブジェクト時),0
---check@grd_integrate:テキスト1枚化(個別オブジェクト時),0
+--check@integrate:テキスト1枚化(個別オブジェクト時),0
 
 -- pcallを使用して読み込みを試行する
--- status: 読み込み成功ならtrue, 失敗ならfalse
--- join_mod: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+-- status,condition: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod,AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
 local status, join_mod = pcall(require, "Individual_object_join")
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
 
 local join = nil
 if status then
@@ -39,6 +40,16 @@ if status then
 else
     -- ファイルが存在しない、または読み込みに失敗した場合の処理
     join = nil
+    debug_print("Individual_object_join.luaが同じフォルダに存在しません。")
+end
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
 end
 
 -- グラデーション
@@ -51,31 +62,13 @@ end
         {"通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分"}
     }
 
-    -- 改行の有無を確認する
-    local text = obj.getvalue("テキスト","テキスト")
-    local count = 1
-    local i = 0
-    while true do
-        -- 改行の位置を検索
-        i = string.find(text, "\\n", i + 1)
-        if not i then break end
-    
-        -- 直前の文字を確認（インデックス i-1）
-        local prev_char = string.sub(text, i - 1, i - 1)
-    
-        if prev_char ~= "\\" then
-            count = count + 1
-        end
-    end
-
-    local w, h = obj.getpixel()
-    local resize
+    -- リサイズに必要な数値を取得
+    local resize = AKIRA_h.get_text_resize()
     if(alter_size ~= 0) then
-        resize = (h/100) / math.max(1,count)
+        resize = resize
     else
         resize = 1
     end
-
 
 -- 各設定値を i で管理するためのテーブル
 local grd_enable    = { grd_enable1,    grd_enable2    }
@@ -117,7 +110,7 @@ for i = 1, 2 do
         local noC1 = (grd_start_col[i] == nil) and 1 or 0
         local noC2 = (grd_end_col[i] == nil) and 1 or 0
 
-        -- effect関数の実行
+        -- obj.effect関数の実行
         obj.effect("グラデーション",
             "強さ",      grd_pow[i],
             "中心X",     grd_x[i] * resize,
@@ -134,19 +127,12 @@ for i = 1, 2 do
     end
 end
 
-    -- テキスト一枚化処理 (グラデーション用)
-    local w, h = 0, 0
-    local permanent_aw, permanent_ah = obj.getpixel()
-    h = (h+permanent_ah) * obj.sx * obj.sy * obj.sz
-    if grd_integrate ~= 0 then
+    -- テキスト一枚化処理
+    if integrate ~= 0 then
         if is_multi then
-            for i=0, obj.num do
-                local aw = obj.getpixel()
-                w = (w+aw) * obj.sx * obj.sy * obj.sz
-            end
             if join then
-                join.object_join(w, h)
-            elseif obj.index == 0 then
+                join.object_join()
+            else
                 debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
             end
         else

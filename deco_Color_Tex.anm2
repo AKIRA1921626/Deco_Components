@@ -9,8 +9,8 @@
 --color@char_col3:文字色3,0000c8
 --track@char_start3:文字色3開始文字(個別オブジェクト時),0,500,5,1
 --track@char_end3:文字色3終了文字(個別オブジェクト時),0,500,6,1
---check@char_reset3:文字色3リセット,1
---check@grd_integrate:テキスト1枚化(個別オブジェクト時),0
+--check@char_reset3:文字色3リセット,0
+--check@integrate:テキスト1枚化(個別オブジェクト時),0
 
 -- pcallを使用して読み込みを試行する
 -- status: 読み込み成功ならtrue, 失敗ならfalse
@@ -23,6 +23,7 @@ if status then
 else
     -- ファイルが存在しない、または読み込みに失敗した場合の処理
     join = nil
+    debug_print("Individual_object_join.luaが同じフォルダに存在しません。")
 end
 
 local is_multi = obj.getoption("multi_object")
@@ -49,19 +50,12 @@ if is_multi then
     end
 end
 
-    -- テキスト一枚化処理 (個別文字用)
-    local w, h = 0, 0
-    local permanent_aw, permanent_ah = obj.getpixel()
-    h = (h+permanent_ah) * obj.sx * obj.sy * obj.sz
-    if grd_integrate ~= 0 then
+    -- テキスト一枚化処理
+    if integrate ~= 0 then
         if is_multi then
-            for i=0, obj.num do
-                local aw = obj.getpixel()
-                w = (w+aw) * obj.sx * obj.sy * obj.sz
-            end
             if join then
-                join.object_join(w, h)
-            elseif obj.index == 0 then
+                join.object_join()
+            else
                 debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
             end
         else

@@ -1,0 +1,73 @@
+--color@glow_col:後方グロー色,0xff00ff
+--track@glow_pow:後方グロー強さ,0,500,30,1
+--track@glow_diffusion:後方グロー拡散,0,500,120,1
+--track@glow_blur:後方グローぼかし,0,50,10,1
+--check@alter_size:後方グローの大きさをテキストの大きさと連動,1
+
+-- pcallを使用して読み込みを試行する
+-- status,condition: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod,AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+    -- 改行の回数を確認する
+    local count = AKIRA_h.line_break_confirmation()
+
+    -- リサイズに必要な数値を取得
+    local resize = AKIRA_h.get_text_resize()
+    if(alter_size ~= 0) then
+        resize = resize
+    else
+        resize = 1
+    end
+
+    -- 1. 現在の状態を退避
+    obj.copybuffer("cache:glow_text_tmp", "obj")
+    
+    -- 2. バッファサイズの計算
+    local ow, oh = AKIRA_h.get_text_size()
+    local total_diff = glow_diffusion  * resize * count
+    -- 拡散分を考慮してバッファを確保（16の倍数に切り上げ）
+    local bw = math.min(obj.screen_w,math.ceil((ow + total_diff ) / 16) * 16)
+    local bh = math.min(obj.screen_h,math.ceil((oh + total_diff * count) / 16) * 16)
+    
+    -- 3. 描画ターゲットを仮想バッファに変更
+    obj.setoption("drawtarget", "tempbuffer", bw, bh)
+    obj.clearbuffer("tempbuffer")
+    
+    local glow_pow = glow_pow * resize * count
+    local glow_blur = glow_blur
+    
+    obj.effect("グロー",
+        "強さ", glow_pow,
+        "拡散", total_diff,
+        "ぼかし", glow_blur,
+        "光色", glow_col or 0xffffff,
+        "光成分のみ", 1,
+        "形状", "通常"
+    )
+
+    -- 元のオブジェクトを、グローを"光成分のみ"とした状態で(背景として）、グローのみとなったものを中央に描画
+    obj.draw()
+
+    -- 前景（元のテキスト）の描画
+    obj.copybuffer("obj", "cache:glow_text_tmp")
+    obj.draw()
+    
+    -- 4. 描画さきをフレームバッファに戻す。
+    obj.setoption("drawtarget", "framebuffer")
+    
+    -- 背景仮想バッファのロード
+    --obj.load("tempbuffer")
+    obj.copybuffer("obj", "tempbuffer")
+    
+    -- 後片付け
+    obj.clearbuffer("tempbuffer")

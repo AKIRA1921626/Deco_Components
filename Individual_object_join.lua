@@ -5,15 +5,69 @@ Individual_object_join.lua
 
 local M = {}
 
-function M.object_join(w, h)
+function M.object_join()
     -- index 0 の時にバッファを初期化
     if (obj.index == 0) then
-        -- サイズ未指定時は画面サイズをデフォルトにする
-        w = w or obj.screen_w
-        h = h or obj.screen_h
-        
+
+            -- 改行の有無を確認する
+        local text = obj.getvalue("テキスト","テキスト")
+        local count = 1
+        local i = 0
+        while true do
+            -- 改行の位置を検索
+            i = string.find(text, "\\n", i + 1)
+            if not i then break end
+    
+            -- 直前の文字を確認（インデックス i-1）
+            local prev_char = string.sub(text, i - 1, i - 1)
+    
+            if prev_char ~= "\\" then
+                count = count + 1
+            end
+        end
+
+        -- objload("textlayout",text)用に各種値を取得し設定
+        local name = obj.getvalue("テキスト","フォント")
+        local size = obj.getvalue("テキスト","サイズ")
+        local charspacing = obj.getvalue("テキスト","字間")
+        local linespacing = obj.getvalue("テキスト","行間")
+
+        -- setfontに渡す引数の値をマジックナンバーを回避するために変数として作成
+        local type,col1,col2,bold,italic = 0,0x000000,0x000000,false,false
+        obj.setfont(name,size,type,col1,col2,bold,italic,charspacing,linespacing)
+
+        -- テキストオブジェクトの中身を取得
+        local text = obj.getvalue("テキスト","テキスト")
+
+        -- obj.load()には obj.ox, obj.oy, obj.​cx などが 0 に初期化されるというしようがあるらしい。
+        -- https://x.com/sigma_axis/status/2023330969777012820
+        -- そのためobj.load("textlayout",text)を使用する前に、各種座標を保存しておく。
+
+        -- obj.load()の座標リセットを回避するため、座標保存用の変数
+        local ox,oy,oz,cx,cy,cz = obj.ox,obj.oy,obj.oz,obj.cx,obj.cy,obj.cz
+
+        -- テキストオブジェクトの実際の中身の縦と横を取得。ここで各種座標がリセットされる。
+        local tw,th = obj.load("textlayout",text)
+        -- 現在のテキストオブジェクトでの改行の縦と横を取得。ここで各種座標がリセットされる。
+        local ew,eh = obj.load("textlayout","\n")
+
+        -- obj.load()の座標リセットを回避するため、座標保存用の変数を再度各座標に格納。
+        obj.ox = ox
+        obj.oy = oy
+        obj.oz = oz
+        obj.cx = cx
+        obj.cy = cy
+        obj.cz = cz
+    
+        -- 改行のサイズと改行が行われている回数を掛け合わせたものを変数に格納
+        local line_break_offset = ew * eh * count
+
+        -- 最終的に仮想バッファに渡すw,hの変数
+        local finalsize_w = math.min(obj.screen_w,(tw-line_break_offset))
+        local finalsize_h = math.min(obj.screen_h,(th*count))
+
         -- 仮想バッファの作成（初期化）
-        obj.setoption("drawtarget", "tempbuffer", w, h)
+        obj.setoption("drawtarget", "tempbuffer", finalsize_w, finalsize_h)
         obj.clearbuffer("tempbuffer")
     else
         -- 2文字目以降は既存のバッファをターゲットに設定
@@ -26,8 +80,6 @@ function M.object_join(w, h)
     local alpha = obj.getvalue("alpha")
 
     -- 仮想バッファへの描画
-    -- 相対座標(ox, oy, oz)に加えて、バッファ中央(w/2, h/2)を基準にする場合は座標調整が必要
-    -- ここでは元のロジックを継承しつつ描画
     obj.draw(obj.ox, obj.oy, obj.oz, scale, alpha, obj.rx, obj.ry, obj.rz)
 
     -- 最後の文字ではない場合：元の文字を表示させないための処理

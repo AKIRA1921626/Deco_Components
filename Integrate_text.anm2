@@ -1,0 +1,85 @@
+--information:AKIRA作の各種スクリプトについている「テキスト一枚化」のcheckの機能を単体のスクリプトで使用できるようにしたもの。
+--track@region_top_and_botom:拡張上下,0,4000,0,1
+--track@region_left_and_right:拡張左右,0,4000,0,1
+--group:各種反転チェックボックス,false
+--check@upside_down:上下反転,0
+--check@flipped_image:左右反転,0
+--check@brightness_inversion:輝度反転,0
+--check@color_reversal:色相反転,0
+--check@invert_transparency:透明度反転,0
+--group
+
+-- pcallを使用して読み込みを試行する
+-- condition: 読み込み成功ならtrue, 失敗ならfalse
+-- AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+-- 個別オブジェクトが有効から向こうを調べる変数
+-- true=有効 / false=無効
+local is_multi = obj.getoption("multi_object")
+
+    -- index 0 の時にバッファを初期化
+    if obj.index == 0 then
+
+        -- 現在のテキストの縦と横のサイズを取得
+        local w,h = AKIRA_h.get_text_size()
+
+        -- 現在のテキストで行われた改行の回数を取得
+        local count = AKIRA_h.line_break_confirmation()
+
+        -- 現在のテキストでの改行のサイズを取得
+        -- local lb_size = AKIRA_h.get_line_break_size() -- lb_countの数値が想定通りにならないため、下記ではcountを使っている。
+
+        -- トラックバーの拡張の数値の文だけ仮想バッファに追加する用の変数。入力しやすいようにtb,lrに再代入。
+        local tb = region_top_and_botom
+        local lr = region_left_and_right
+
+        -- local lb_count = lb_size * count -- lb_countの数値が想定通りにならないため、下記ではcountを使っている。
+
+        -- 仮想バッファの作成（初期化）
+        obj.setoption("drawtarget", "tempbuffer", math.min(obj.screen_w,(w + lr)),math.min(obj.screen_h,(h * count + tb)))
+        obj.clearbuffer("tempbuffer")
+    else
+        -- 2文字目以降は既存のバッファをターゲットに設定
+        obj.setoption("drawtarget", "tempbuffer")
+    end
+
+    -- 拡大率と透明度の取得
+    -- ※AviUtlの内部仕様により obj.sx 等を統合して扱う
+    local scale = obj.sx
+    local alpha = obj.getvalue("alpha")
+
+    -- 仮想バッファへの描画
+    -- 相対座標(ox, oy, oz)に加えて、バッファ中央(w/2, h/2)を基準にする場合は座標調整が必要
+    obj.draw(obj.ox, obj.oy, obj.oz, scale, alpha, obj.rx, obj.ry, obj.rz)
+
+    -- 最後の文字ではない場合：元の文字を表示させないための処理
+    if (obj.index ~= obj.num - 1) then
+        obj.setoption("drawtarget", "framebuffer")
+        --obj.clearbuffer("object") -- どちらでも可能
+        obj.load("tempbuffer") --上記と入れ替える箇所。ここから
+        obj.alpha = 0
+        obj.draw(obj.ox, obj.oy, obj.oz, scale, 0, obj.rx, obj.ry, obj.rz) -- ここまで
+    else
+        -- 最後の文字の場合：統合されたバッファをメインに描画
+        obj.setoption("drawtarget", "framebuffer")
+        obj.load("tempbuffer")
+        obj.clearbuffer("tempbuffer")
+        -- 描画後は他のスクリプトへの影響を防ぐためバッファをクリア
+    end
+    if not is_multi then -- 個別オブジェクトが有効でないならメッセージを表示する
+        debug_print("個別オブジェクトが有効ではないため、「テキスト1枚化」処理をスキップします。")
+    end
+
+-- 各種反転処理を最後に行う。
+-- ついでにくっつけた機能なので、ここは全部削除してもテキスト一枚化には問題がない。
+obj.effect("反転","上下反転",upside_down,"左右反転",flipped_image,"輝度反転",brightness_inversion,"色相反転",color_reversal,"透明度反転",invert_transparency)
