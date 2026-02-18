@@ -35,7 +35,7 @@ https://github.com/AKIRA1921626/text-decoration-set
 
 ### Integrate_text.anm2
 これは様々なスクリプトに存在する「テキスト1枚化」のチェックボックスを、このスクリプトで行えるように分離したものです。  
-チェックボックスで機能するのではなく、スクリプトで機能する形に変更しただけなので、AKIRA_aviutl2_helper.luaが同じフォルダに必要です。  
+チェックボックスで機能するのではなく、スクリプトで機能する形に変更しただけなので、"AKIRA_aviutl2_helper.lua"が同じフォルダに必要です。  
 
 ### Individual_object_join.lua
 これは各種スクリプトに存在する「テキスト1枚化」の機能を有効にするための物です。  
