@@ -5,7 +5,10 @@ Individual_object_join.lua
 
 local M = {}
 
-function M.object_join()
+function M.object_join(add_w,add_h)
+    add_w = add_w or 0
+    add_h = add_h or 0
+
     -- index 0 の時にバッファを初期化
     if (obj.index == 0) then
 
@@ -63,8 +66,8 @@ function M.object_join()
         local line_break_offset = ew * eh * count
 
         -- 最終的に仮想バッファに渡すw,hの変数
-        local finalsize_w = math.min(obj.screen_w,(tw-line_break_offset))
-        local finalsize_h = math.min(obj.screen_h,(th*count))
+        local finalsize_w = math.min(obj.screen_w,(tw-line_break_offset + add_w))
+        local finalsize_h = math.min(obj.screen_h,(th*count + add_h))
 
         -- 仮想バッファの作成（初期化）
         obj.setoption("drawtarget", "tempbuffer", finalsize_w, finalsize_h)
