@@ -1,6 +1,7 @@
 # Deco_Components
 装飾セットの各種機能を小分けにしたスクリプトたち  
 小分けにするのと同時に、一部機能を変更したり、機能を追加したり、改良したりしている。  
+多くのスクリプトは、ここにある"Individual_object_join.lua","AKIRA_aviutl2_helper.lua"を同じフォルダにダウンロードしておく必要がある。  
 
 ## 装飾セット.anm2
 https://github.com/AKIRA1921626/text-decoration-set  
