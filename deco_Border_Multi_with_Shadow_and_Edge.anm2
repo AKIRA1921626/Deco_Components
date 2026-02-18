@@ -115,6 +115,8 @@ end
     apply_edge(1)
     apply_shadow(1)
 
+    -- 個別オブジェクトが有効か否かの変数,有効true,無効false 
+    local is_multi = obj.getoption("multi_object")
 
     -- 1. 範囲判定フラグの準備
     local apply_flags = {}
@@ -169,9 +171,6 @@ end
         apply_shadow(i + 1)
         end
     end
-
-    -- 個別オブジェクトが有効か否かの変数,有効true,無効false 
-    local is_multi = obj.getoption("multi_object")
 
     -- テキスト一枚化処理
     if integrate ~= 0 then
