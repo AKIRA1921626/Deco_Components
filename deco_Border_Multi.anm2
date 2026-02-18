@@ -1,0 +1,122 @@
+--track@frame_size_common:縁取り共通サイズ,0,500,7,1
+--track@frame_blur_common:縁取り共通ぼかし,0,100,5,1
+--check@frame_enable1:縁取り1,1
+--color@frame_col1:縁取り1色,0xffffff
+--track@frame_size1:縁取り1サイズ,-100,500,0,1
+--track@frame_blur1:縁取り1ぼかし,-100,100,0,1
+--track@frame_start1:縁取り1開始文字(個別オブジェクト時),0,500,0,1
+--track@frame_end1:縁取り1終了文字(個別オブジェクト時),0,500,3,1
+--check@frame_enable2:縁取り2,0
+--color@frame_col2:縁取り2色,0x1ec832
+--track@frame_size2:縁取り2サイズ,-100,500,0,1
+--track@frame_blur2:縁取り2ぼかし,-100,100,0,1
+--track@frame_start2:縁取り2開始文字(個別オブジェクト時),0,500,4,1
+--track@frame_end2:縁取り2終了文字(個別オブジェクト時),0,500,6,1
+--check@frame_enable3:縁取り3,0
+--color@frame_col3:縁取り3色,0x3232c8
+--track@frame_size3:縁取り3サイズ,-100,500,0,1
+--track@frame_blur3:縁取り3ぼかし,-100,100,0,1
+--track@frame_start3:縁取り3開始文字(個別オブジェクト時),0,500,0,1
+--track@frame_end3:縁取り3終了文字(個別オブジェクト時),0,500,20,1
+--check@alter_size:縁取りの数値をテキストサイズと連動,1
+--check@integrate:テキスト1枚化(個別オブジェクト時),0
+
+-- pcallを使用して読み込みを試行する
+-- status,condition: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod,AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local status, join_mod = pcall(require, "Individual_object_join")
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local join = nil
+if status then
+    join = join_mod
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    join = nil
+    debug_print("Individual_object_join.luaが同じフォルダに存在しません。")
+end
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+    -- リサイズに必要な数値を取得
+    local resize = AKIRA_h.get_text_resize()
+    if(alter_size ~= 0) then
+        resize = resize
+    else
+        resize = 1
+    end
+
+    -- 1. 範囲判定フラグの準備
+    local apply_flags = {}
+    if (not is_multi) then
+        apply_flags = { true, true, true }
+    else
+        local idx = obj.index + 1
+        -- パラメータ名が frame_s0 ... の形式であることを想定
+        apply_flags[1] = (frame_start1 <= idx and frame_end1 >= idx)
+        apply_flags[2] = (frame_start2 <= idx and frame_end2 >= idx)
+        apply_flags[3] = (frame_start3 <= idx and frame_end3 >= idx)
+    end
+    
+    frame = {
+        frame_enable1,
+        frame_enable2,
+        frame_enable3,
+    }
+    frame_size = {
+        frame_size1,
+        frame_size2,
+        frame_size3,
+    }
+    frame_blur = {
+        frame_blur1,
+        frame_blur2,
+        frame_blur3,
+    }
+    frame_col = {
+        frame_col1,
+        frame_col2,
+        frame_col3,
+    }
+
+    -- 2. 縁取り実行ループ (0～2 の 3枠分)
+    for i = 1, 3 do
+        local check = frame[i]
+        -- 「チェックがON」かつ「描画範囲内」
+        if check ~= 0 and apply_flags[i] then
+            
+            local f_size = frame_size[i] or 0
+            local f_blur = frame_blur[i] or 0
+            local f_col  = frame_col[i] or 0xffffff
+
+            -- エフェクト実行
+            obj.effect("縁取り",
+                "サイズ", math.max(0,f_size +frame_size_common * resize),
+                "ぼかし", math.max(0,f_blur +frame_blur_common),
+                "縁色",   f_col
+            )
+        end
+    end
+
+    -- 個別オブジェクトが有効か否かの変数,有効true,無効false 
+    local is_multi = obj.getoption("multi_object")
+
+    -- テキスト一枚化処理
+    if integrate ~= 0 then
+        if is_multi then
+            if join then
+                join.object_join(200,200)
+            else
+                debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
+            end
+        else
+            debug_print("個別オブジェクトが有効になっていません。そのためテキスト一枚化の実行を停止します。")
+        end
+end

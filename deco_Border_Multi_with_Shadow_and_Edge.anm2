@@ -1,0 +1,187 @@
+--track@frame_size_common:縁取り共通サイズ,0,500,7,1
+--track@frame_blur_common:縁取り共通ぼかし,0,100,5,1
+--check@frame_enable1:縁取り1,1
+--color@frame_col1:縁取り1色,0xffffff
+--track@frame_size1:縁取り1サイズ,-100,500,0,1
+--track@frame_blur1:縁取り1ぼかし,-100,100,0,1
+--track@frame_start1:縁取り1開始文字(個別オブジェクト時),0,500,0,1
+--track@frame_end1:縁取り1終了文字(個別オブジェクト時),0,500,3,1
+--check@frame_enable2:縁取り2,0
+--color@frame_col2:縁取り2色,0x1ec832
+--track@frame_size2:縁取り2サイズ,-100,500,0,1
+--track@frame_blur2:縁取り2ぼかし,-100,100,0,1
+--track@frame_start2:縁取り2開始文字(個別オブジェクト時),0,500,4,1
+--track@frame_end2:縁取り2終了文字(個別オブジェクト時),0,500,6,1
+--check@frame_enable3:縁取り3,0
+--color@frame_col3:縁取り3色,0x3232c8
+--track@frame_size3:縁取り3サイズ,-100,500,0,1
+--track@frame_blur3:縁取り3ぼかし,-100,100,0,1
+--track@frame_start3:縁取り3開始文字(個別オブジェクト時),0,500,0,1
+--track@frame_end3:縁取り3終了文字(個別オブジェクト時),0,500,20,1
+--group:凸エッジ,false
+--check@edge_enable:凸エッジ,0
+--select@edge_order:凸エッジ適用箇所=1, 1:文字の後=1, 2:縁取り1枠の後=2, 3:縁取り2枠の後=3, 4:縁取り3枠の後=4
+--track@edge_width:凸エッジ幅,0,100,3,1
+--track@edge_height:凸エッジ高さ,0,3,1.75,0.01
+--track@edge_angle:凸エッジ角度,-3600,3600,-75,0.01
+--group
+--group:影,false
+--check@shadow_enable:影を付与,0
+--color@shadow_col:影色,0x0a0a0a
+--select@shadow_order:影適用箇所=1, 1:文字の後=1, 2:縁取り1枠の後=2, 3:縁取り2枠の後=3, 4:縁取り3枠の後=4
+--check@shadow_clear:影をくっきりさせる,0
+--track@shadow_x:影x,-1000,1000,5,1
+--track@shadow_y:影y,-1000,1000,5,1
+--track@shadow_deep:影濃さ,0,100,70,1
+--track@shadow_diffusion:影拡散,0,500,15,1
+--group
+--check@alter_size:縁取りの数値をテキストサイズと連動,1
+--check@integrate:テキスト1枚化(個別オブジェクト時),0
+
+-- pcallを使用して読み込みを試行する
+-- status,condition: 読み込み成功ならtrue, 失敗ならfalse
+-- join_mod,AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local status, join_mod = pcall(require, "Individual_object_join")
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local join = nil
+if status then
+    join = join_mod
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    join = nil
+    debug_print("Individual_object_join.luaが同じフォルダに存在しません。")
+end
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+    -- リサイズに必要な数値を取得
+    local resize = AKIRA_h.get_text_resize()
+    if(alter_size ~= 0) then
+        resize = resize
+    else
+        resize = 1
+    end
+
+    local shadow = {
+        x = shadow_x,
+        y = shadow_y,
+        deep = shadow_deep,
+        diffusion = shadow_diffusion,
+    }
+
+    -- 1. 影の設定更新（内部関数）
+    local function update_shadow_table(target_b, is_clear)
+    -- is_clear が 0 以外（チェックON）のとき、テーブルの値を直接書き換える
+    if is_clear ~= 0 then
+        target_b.x = target_b.x
+        target_b.y = target_b.y
+        target_b.deep = 100
+        target_b.diffusion = 0
+    end
+end
+
+    -- 呼び出し側（引数名を params の定義と一致させる）
+    update_shadow_table(shadow, shadow_clear)
+
+    -- 2. 内部関数の定義（エッジ・影）
+    local function apply_edge(target_order)
+        if (edge_enable ~= 0 and edge_order == target_order) then
+            obj.effect("凸エッジ", "幅", edge_width, "高さ", edge_height, "角度", edge_angle)
+        end
+    end
+
+    local function apply_shadow(target_order)
+        local s_idx = target_order -- 描画順に応じた影設定の参照（必要に応じて調整）
+        if (shadow_enable ~= 0 and shadow_order == target_order) then
+            obj.effect("ドロップシャドウ",
+                "X", shadow.x * resize,
+                "Y", shadow.y * resize,
+                "濃さ", shadow.deep,
+                "拡散", shadow.diffusion,
+                "影色", shadow_col,
+                "影を別オブジェクトで描画", 0
+            )
+        end
+    end
+
+    apply_edge(1)
+    apply_shadow(1)
+
+
+    -- 1. 範囲判定フラグの準備
+    local apply_flags = {}
+    if (not is_multi) then
+        apply_flags = { true, true, true }
+    else
+        local idx = obj.index + 1
+        -- パラメータ名が frame_s0 ... の形式であることを想定
+        apply_flags[1] = (frame_start1 <= idx and frame_end1 >= idx)
+        apply_flags[2] = (frame_start2 <= idx and frame_end2 >= idx)
+        apply_flags[3] = (frame_start3 <= idx and frame_end3 >= idx)
+    end
+    
+    frame = {
+        frame_enable1,
+        frame_enable2,
+        frame_enable3,
+    }
+    frame_size = {
+        frame_size1,
+        frame_size2,
+        frame_size3,
+    }
+    frame_blur = {
+        frame_blur1,
+        frame_blur2,
+        frame_blur3,
+    }
+    frame_col = {
+        frame_col1,
+        frame_col2,
+        frame_col3,
+    }
+
+    -- 2. 縁取り実行ループ (0～2 の 3枠分)
+    for i = 1, 3 do
+        local check = frame[i]
+        -- 「チェックがON」かつ「描画範囲内」
+        if check ~= 0 and apply_flags[i] then
+            
+            local f_size = frame_size[i] or 0
+            local f_blur = frame_blur[i] or 0
+            local f_col  = frame_col[i] or 0xffffff
+
+            -- エフェクト実行
+            obj.effect("縁取り",
+                "サイズ", math.max(0,f_size +frame_size_common * resize),
+                "ぼかし", math.max(0,f_blur +frame_blur_common),
+                "縁色",   f_col
+            )
+        apply_edge(i + 1)
+        apply_shadow(i + 1)
+        end
+    end
+
+    -- 個別オブジェクトが有効か否かの変数,有効true,無効false 
+    local is_multi = obj.getoption("multi_object")
+
+    -- テキスト一枚化処理
+    if integrate ~= 0 then
+        if is_multi then
+            if join then
+                join.object_join(200,200)
+            else
+                debug_print("Individual_object_join.lua(テキスト一枚化用の.lua)が同じフォルダに存在しません。そのためテキスト一枚化の実行を停止します。")
+            end
+        else
+            debug_print("個別オブジェクトが有効になっていません。そのためテキスト一枚化の実行を停止します。")
+        end
+end
