@@ -36,6 +36,7 @@
 --track@shadow_diffusion:影拡散,0,500,15,1
 --group
 --check@alter_size:縁取りの数値をテキストサイズと連動,1
+--check@range:縁取り対象をすべてのテキストにする,0
 --check@integrate:テキスト1枚化(個別オブジェクト時),0
 
 -- pcallを使用して読み込みを試行する
@@ -128,6 +129,11 @@ end
         apply_flags[1] = (frame_start1 <= idx and frame_end1 >= idx)
         apply_flags[2] = (frame_start2 <= idx and frame_end2 >= idx)
         apply_flags[3] = (frame_start3 <= idx and frame_end3 >= idx)
+    end
+
+    -- check「縁取り対象をすべてのテキストにする」がONならば、すべてtrue
+    if range ~= 0 then
+        apply_flags = { true, true, true }
     end
     
     frame = {

@@ -19,6 +19,7 @@
 --track@frame_start3:縁取り3開始文字(個別オブジェクト時),0,500,0,1
 --track@frame_end3:縁取り3終了文字(個別オブジェクト時),0,500,20,1
 --check@alter_size:縁取りの数値をテキストサイズと連動,1
+--check@range:縁取り対象をすべてのテキストにする,0
 --check@integrate:テキスト1枚化(個別オブジェクト時),0
 
 -- pcallを使用して読み込みを試行する
@@ -58,7 +59,7 @@ end
 
     -- 1. 範囲判定フラグの準備
     local apply_flags = {}
-    if (not is_multi) then
+    if not is_multi then
         apply_flags = { true, true, true }
     else
         local idx = obj.index + 1
@@ -66,6 +67,11 @@ end
         apply_flags[1] = (frame_start1 <= idx and frame_end1 >= idx)
         apply_flags[2] = (frame_start2 <= idx and frame_end2 >= idx)
         apply_flags[3] = (frame_start3 <= idx and frame_end3 >= idx)
+    end
+
+    -- check「縁取り対象をすべてのテキストにする」がONならば、すべてtrue
+    if range ~= 0 then
+        apply_flags = { true, true, true }
     end
     
     frame = {
