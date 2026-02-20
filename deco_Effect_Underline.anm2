@@ -1,0 +1,72 @@
+--track@underline_x:下線サイズx,0,2000,600,1
+--track@underline_y:下線サイズy,0,2000,20,1
+--color@underline_col:下線色,0xf5f5f5
+--track@underline_posx:下線位置x,-100000,100000,0,1
+--track@underline_posy:下線位置y,-100000,100000,40,1
+--track@underline_alpha:下線透明度,0,100,0,0.1
+
+-- pcallを使用して読み込みを試行する
+-- condition: 読み込み成功ならtrue, 失敗ならfalse
+-- AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+    -- テキストの画像サイズを取得
+    local zw, zh = AKIRA_h.get_text_size()
+
+    -- リサイズに必要な数値を取得
+    local resize = AKIRA_h.get_text_resize()
+    if alter_size ~= 0 then
+        resize = resize
+    else
+        resize = 1
+    end
+
+    -- 仮想バッファに追加する幅。コードに手書きして調整する用
+    local add_w,add_h = 0,100
+    
+    -- 1. 現在のオブジェクト（装飾済みテキスト）を退避
+    obj.copybuffer("cache:underline_text_tmp", "obj")
+
+    local fw = zw + ((underline_x + math.abs(underline_posx))*2)+add_w
+    local fh = zh + ((underline_y + math.abs(underline_posy))*2)+add_h
+
+    -- 2. 描画ターゲットを一時バッファに変更
+    -- 安全のため画面サイズで初期化
+    obj.setoption("drawtarget", "tempbuffer", fw, fh)
+    obj.clearbuffer("tempbuffer")
+
+    -- 3. アンダーライン（図形）の描画
+    obj.load("figure", "四角形", underline_col or 0xffffff, 100)
+    
+    -- サイズと位置の計算
+    local line_w = underline_x * resize
+    local line_h = underline_y * resize
+    local pos_x  = underline_posx * resize
+    local pos_y  = underline_posy * resize
+    
+    -- 透明度の計算 (0.0 - 1.0)
+    local alpha = 1 - underline_alpha or 0 / 100
+    alpha = math.max(0, math.min(1, alpha))
+
+    -- 図形のリサイズと描画
+    obj.effect("リサイズ", "拡大率", 100, "X", line_w, "Y", line_h)
+    obj.draw(pos_x, pos_y, 0, 1, alpha)
+
+    -- 5. テキストを上に重ねる
+    obj.copybuffer("obj", "cache:underline_text_tmp")
+    obj.draw(0, 0, 0, 1, 1)
+
+    -- 6. 結果をメインバッファへ戻し、一時バッファを掃除
+    obj.setoption("drawtarget", "framebuffer")
+    --obj.load("tempbuffer")
+    obj.copybuffer("obj", "tempbuffer")
+    obj.clearbuffer("tempbuffer")

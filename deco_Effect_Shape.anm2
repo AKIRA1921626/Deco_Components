@@ -1,0 +1,72 @@
+--track@bg_x:ざぶとんサイズx,0,2000,300,1
+--track@bg_y:ざぶとんサイズy,0,2000,50,1
+--color@bg_col:ざぶとん色,0xc81919
+--track@bg_posx:ざぶとん位置x,-100000,100000,0,1
+--track@bg_posy:ざぶとん位置y,-100000,100000,0,1
+--track@bg_alpha:ざぶとん透明度,0,100,0,0.1
+--track@bg_frame_size:ざぶとん枠線サイズ,0,500,0,1
+--track@bg_frame_blur:ざぶとん枠線ぼかし,0,100,0,1
+--color@bg_frame_col:ざぶとん枠色,0xf5f5f5
+--check@bg_resize:ざぶとんのサイズをテキストのサイズに合わせる,1
+--check@alter_resize:枠線のサイズをテキストのサイズに合わせる,1
+
+-- pcallを使用して読み込みを試行する
+-- condition: 読み込み成功ならtrue, 失敗ならfalse
+-- AKIRA_helper: 成功時はモジュール本体, 失敗時はエラーメッセージが代入される
+local condition, AKIRA_helper = pcall(require, "AKIRA_aviutl2_helper")
+
+local AKIRA_h = nil
+if condition then
+    AKIRA_h = AKIRA_helper
+else
+    -- ファイルが存在しない、または読み込みに失敗した場合の処理
+    AKIRA_h = nil
+    debug_print("AKIRA_aviutl2_helper.luaが同じフォルダに存在しません。")
+end
+
+        -- 1. 現在の装飾済みテキストを一時バッファに退避
+        obj.copybuffer("cache:deco_shapes_text", "obj")
+
+        -- テキストの画像サイズを取得
+        local zw, zh = AKIRA_h.get_text_size()
+        
+        -- 余白（add_w, add_h）の計算
+        -- 縁取りや影の広がりを考慮して仮想バッファのサイズを拡張する変数
+        local add_w, add_h = 100, 100
+
+        -- 最終的なバッファサイズの計算（16の倍数に切り上げ）
+        local max_size = 4000
+        local bw = math.min(max_size, math.ceil( math.abs(bg_posx * 2) + bg_x) / 16) * 16
+        local bh = math.min(max_size, math.ceil( math.abs(bg_posy * 2) + bg_y) / 16) * 16
+
+        -- リサイズに必要な数値を取得
+        local resize = AKIRA_h.get_text_resize()
+        if(alter_size ~= 0) then
+            resize = resize
+        else
+            resize = 1
+        end
+
+        -- 2. 背景描画用の一時バッファを作
+        obj.setoption("drawtarget", "tempbuffer", (zw+bw+bg_frame_size+add_w)*resize, (zh+bh+bg_frame_size+add_h)*resize)
+        obj.clearbuffer("tempbuffer")
+
+        -- 3. 背景図形（ざぶとん）の生成と描画
+        obj.load("figure", "四角形", bg_col, 100) -- サイズはリサイズで制御するため初期値100
+        obj.effect("リサイズ", "拡大率", 100, "X", zw + bg_x * resize, "Y", zh + bg_y * resize)
+
+        if bg_frame_size> 0 then
+            obj.effect("縁取り", "サイズ", bg_frame_size * resize, "ぼかし", bg_frame_blur, "縁色", bg_frame_col)
+        end
+
+        -- 透明度の計算（b.shapes.alphaは0-100、p.background_alpha0も0-100想定）
+        local alpha = 1 - bg_alpha / 100
+        obj.draw(bg_posx, bg_posy, 0, 1, math.max(0, math.min(1, alpha)))
+
+        -- 4. 退避していたテキストを背景の上に重ねる
+        obj.copybuffer("obj", "cache:deco_shapes_text")
+        obj.draw(0, 0, 0, 1, 1)
+
+        -- 5. 結果をメインバッファに戻す
+        obj.setoption("drawtarget", "framebuffer")
+        obj.copybuffer("obj", "tempbuffer")
