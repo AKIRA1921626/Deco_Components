@@ -1,3 +1,4 @@
+--label:装飾セット機能分割
 --check@grd_enable1:グラデーション1,1
 --color@grd_start_col1:グラデ1開始色,0xff0000
 --color@grd_end_col1:グラデ1終了色,0xffff00

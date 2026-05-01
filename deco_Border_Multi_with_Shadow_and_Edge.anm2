@@ -1,3 +1,4 @@
+--label:装飾セット機能分割
 --track@frame_size_common:縁取り共通サイズ,0,500,7,1
 --track@frame_blur_common:縁取り共通ぼかし,0,100,5,1
 --check@frame_enable1:縁取り1,1
